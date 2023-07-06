@@ -5,5 +5,6 @@ namespace PeyulErp.Models
         public Guid ProductId { get; init; }
         public int Quantity { get; init; }
         public int ReorderLevel { get; init; }
+        public int PurchasePrice { get; init; }
     }
 }

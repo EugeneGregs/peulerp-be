@@ -46,7 +46,7 @@ namespace PeyulErp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateTransactionAsync(Purchase purchase)
+        public async Task<IActionResult> CreatePurchaseAsync(Purchase purchase)
         {
             var result = await _purchasesService.UpsertPurchase(purchase);
 
@@ -54,7 +54,7 @@ namespace PeyulErp.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProductAsync(Guid Id)
+        public async Task<IActionResult> DeletePurchaseAsync(Guid Id)
         {
             var deleted = await _purchasesService.DeletePurchase(Id);
 

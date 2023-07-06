@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PeyulErp.Contracts;
 using PeyulErp.Extensions;
+using PeyulErp.Models;
 using PeyulErp.Services;
 
 namespace PeyulErp.Controllers {
@@ -16,11 +17,11 @@ namespace PeyulErp.Controllers {
         }
 
         [HttpGet]
-        public IActionResult GetProductCategories() => Ok(_productCategoryService.GetProductCategories());
+        public async Task<IActionResult> GetProductCategories() => Ok( await _productCategoryService.GetProductCategoriesAsync());
         
         [HttpGet("{Id}")]
-        public IActionResult GetProductCategory(Guid Id){
-            var productCategory = _productCategoryService.GetProductCategory(Id).AsDTO();
+        public async Task<IActionResult> GetProductCategory(Guid Id){
+            var productCategory = (await _productCategoryService.GetProductCategoryAsync(Id)).AsDTO();
 
             if( productCategory is null){
                 return NotFound();
@@ -30,15 +31,30 @@ namespace PeyulErp.Controllers {
         }
 
         [HttpPost]
-        public IActionResult CreateProductCategory(ProductCategoryDTO productcategory){
-            var createdCategory = _productCategoryService.CreateProductCategory(productcategory);
+        public async Task<IActionResult> CreateProductCategory(ProductCategoryDTO productcategory){
+            var createdCategory = await _productCategoryService.CreateProductCategoryAsync(productcategory);
 
             return CreatedAtAction(nameof(GetProductCategory), new { Id = createdCategory.Id }, createdCategory);
         }
 
+        [HttpPost("collection")]
+        public async Task<IActionResult> SaveCategories(IList<ProductCategoryDTO> productcategories)
+        {
+            var tasks = new List<Task<GetProductCategoryDTO>>();
+
+            foreach (var category in productcategories)
+            {
+               tasks.Add(_productCategoryService.CreateProductCategoryAsync(category));
+            }
+
+            await Task.WhenAll(tasks);
+
+            return Ok("");
+        }
+
         [HttpPut("{Id}")]
-        public IActionResult UpdateProductCategory(ProductCategoryDTO productcategory, Guid Id){
-            var updated = _productCategoryService.UpdateProductCategory(productcategory, Id);
+        public async Task<IActionResult> UpdateProductCategory(ProductCategoryDTO productcategory, Guid Id){
+            var updated = await _productCategoryService.UpdateProductCategoryAsync(productcategory, Id);
 
             if(updated is false){
                 return NotFound();
@@ -48,8 +64,8 @@ namespace PeyulErp.Controllers {
         }
 
         [HttpDelete("{Id}")]
-        public IActionResult DeleteProductCategory(Guid Id){
-            var deleted = _productCategoryService.DeleteProductCategory(Id);
+        public async Task<IActionResult> DeleteProductCategory(Guid Id){
+            var deleted = await _productCategoryService.DeleteProductCategoryAsync(Id);
 
             if(deleted is false){
                 return NotFound();

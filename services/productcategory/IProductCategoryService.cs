@@ -3,10 +3,10 @@ using PeyulErp.Models;
 
 namespace PeyulErp.Services {
     public interface IProductCategoryService {
-        IList<GetProductCategoryDTO> GetProductCategories();
-        ProductCategory GetProductCategory(Guid Id);
-        GetProductCategoryDTO CreateProductCategory(ProductCategoryDTO productCategory);
-        bool UpdateProductCategory(ProductCategoryDTO productCategory, Guid Id);
-        bool DeleteProductCategory(Guid Id);
+        Task<IList<GetProductCategoryDTO>> GetProductCategoriesAsync();
+        Task<ProductCategory> GetProductCategoryAsync(Guid Id);
+        Task<GetProductCategoryDTO> CreateProductCategoryAsync(ProductCategoryDTO productCategory);
+        Task<bool> UpdateProductCategoryAsync(ProductCategoryDTO productCategory, Guid Id);
+        Task<bool> DeleteProductCategoryAsync(Guid Id);
     }
 }
