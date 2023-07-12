@@ -47,6 +47,7 @@ namespace PeyulErp.Services{
 
         public async Task<IList<GetProductCategoryDTO>> GetProductCategoriesAsync()
         {
+            Console.WriteLine($"Connection String: {_mongodbSettings.ConnectionString}, Database Name: {_mongodbSettings.DatabaseName}");
             var internalCategories = (await _productCategoryCollections.FindAsync(new BsonDocument())).ToList();
             List<GetProductCategoryDTO> productCategoryDTO = new();
 

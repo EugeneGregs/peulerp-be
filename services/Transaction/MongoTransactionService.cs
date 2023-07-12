@@ -73,12 +73,69 @@ namespace PeyulErp.Services
 
         public async Task<IList<Transaction>> GetTransactions()
         {
-           return (await _transactionsCollection.FindAsync(new BsonDocument())).ToList();
+            return (await _transactionsCollection.FindAsync(new BsonDocument())).ToList();
         }
 
         public Task<bool> UpdateTransaction(Transaction transaction)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<IList<Transaction>> GetByDateRange(DateTime startDate, DateTime endDate)
+        {
+            if (startDate > endDate)
+                return null;
+
+            if(startDate == endDate)
+                endDate = endDate.AddDays(1);
+
+            Console.WriteLine($"Start Date: {startDate} End Date: {endDate}");
+
+            var filter = _filterBuilder.Gte(t => t.CreateDate, startDate.Date) & _filterBuilder.Lte(t => t.CreateDate, endDate.Date);
+
+            return (await _transactionsCollection.FindAsync(filter)).ToList();
+        }
+
+        public async Task<SalesSummary> GetSalesSummary(DateTime startDateTime, DateTime endDateTime)
+        {
+            var startDate = startDateTime.Date;
+            var endDate = endDateTime.Date;
+
+            if (startDate > endDate)
+                return null;
+
+            if (startDate == endDate)
+                endDate = endDate.AddDays(1);
+
+            var SalesSummary = (await _transactionsCollection.Aggregate()
+                .Match(t => t.CreateDate >= startDate.Date && t.CreateDate <= endDate.Date)
+                .Group(t => 1, g => new SalesSummary
+                {
+                    TotalSales = g.Sum(t => t.TotalCost),
+                    GrossProfit = g.Sum(t => t.TotalMargin),
+                    TransactionCount = g.Count()
+                }).ToListAsync()).FirstOrDefault() ?? new SalesSummary();
+
+            SalesSummary.MonthlyAggregation = new Dictionary<int, double>();
+            SalesSummary.MonthlyAggregation = await GetMonthlySalesAggregation();
+
+            return SalesSummary;
+        }
+
+        public async Task<IDictionary<int, double>> GetMonthlySalesAggregation()
+        {
+            var filter = _filterBuilder.Gte(p => p.CreateDate, new DateTime(DateTime.Now.Year, 1, 1));
+            var sales = await _transactionsCollection.FindAsync(filter);
+
+            return sales.ToList().GroupBy(s => s.CreateDate.Month).ToDictionary(g => g.Key, g => (double)g.Sum(s => s.TotalCost));
+        }
+
+        public async Task<IDictionary<int, double>> GetMonthlyProfitsAggregation()
+        {
+            var filter = _filterBuilder.Gte(p => p.CreateDate, new DateTime(DateTime.Now.Year, 1, 1));
+            var sales = await _transactionsCollection.FindAsync(filter);
+
+            return sales.ToList().GroupBy(s => s.CreateDate.Month).ToDictionary(g => g.Key, g => (double)g.Sum(s => s.TotalMargin));
         }
     }
 }

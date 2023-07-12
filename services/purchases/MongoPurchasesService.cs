@@ -4,6 +4,8 @@ using MongoDB.Driver;
 using PeyulErp.Contracts;
 using PeyulErp.Models;
 using PeyulErp.Settings;
+using System.Globalization;
+using System.Runtime.Serialization;
 
 namespace PeyulErp.Services
 {
@@ -178,6 +180,59 @@ namespace PeyulErp.Services
         {
             var filter = GetFilterDefinition(Id);
             return (await _purchasesCollection.FindAsync(filter)).SingleOrDefault();
+        }
+
+        public async Task<List<Purchase>> GetByDateRange(DateTime startDate, DateTime endDate)
+        {
+            if (startDate > endDate)
+                return null;
+
+            if(startDate == endDate)
+                endDate = endDate.AddDays(1);
+
+            var filter = _filter.Gte(p => p.PurchaseDate, startDate.Date) & _filter.Lte(p => p.PurchaseDate, endDate.Date);
+
+            return await _purchasesCollection.Find(filter).ToListAsync();
+        }
+
+        public async Task<PurchaseSummary> GetPurchaseSummary(DateTime startDateTime, DateTime endDateTime)
+        {
+            var startDate = startDateTime.Date;
+            var endDate = endDateTime.Date;
+
+            if(startDate > endDate)
+                return null;
+
+            if(startDate == endDate)
+                endDate = endDate.AddDays(1);
+
+            Console.WriteLine($"Start Date: {startDate.Date} End Date: {endDate.Date}");
+
+            var filter = _filter.Gte(p => p.PurchaseDate, startDate) & _filter.Lte(p => p.PurchaseDate, endDate);
+
+            var purchaseSummary = (await _purchasesCollection.Aggregate()
+                .Match(filter)
+                .Group(p => 1, g => new PurchaseSummary
+                {
+                    TotalPurchases = g.Sum(p => p.Amount),
+                    PurchaseCount = g.Count()
+                }).ToListAsync()).FirstOrDefault() ?? new PurchaseSummary();
+
+            purchaseSummary.MonthlyPurchaseTotals = new Dictionary<int, double>();
+            purchaseSummary.MonthlyPurchaseTotals = await GetMonthlyTotalPurchases();
+
+            Console.WriteLine($"Purchase Summary: {purchaseSummary}");
+
+            return purchaseSummary;
+        }
+
+        public async Task<IDictionary<int,double>> GetMonthlyTotalPurchases()
+        {
+            var filter = _filter.Gte(p => p.PurchaseDate, new DateTime(DateTime.Now.Year, 1, 1));
+
+            var thisYearPurchases = (await _purchasesCollection.FindAsync(filter)).ToList();
+            
+            return thisYearPurchases.GroupBy(p => p.PurchaseDate.Month).ToDictionary(g => g.Key, g => (double)g.Sum(p => p.Amount));
         }
     }
 }

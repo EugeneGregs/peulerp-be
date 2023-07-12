@@ -21,6 +21,7 @@ namespace PeyulErp.Services
         private IList<GetProductDTO> _diminishingProducts;
         private IProductsService _productsService;
         private readonly SystemSettings _systemSettings;
+        private bool _isRefreshing = false;
 
         public DefaultInventoryManager(IStockService stockService, IProductsService productsService, IOptions<SystemSettings> systemSettings)
         {
@@ -71,8 +72,11 @@ namespace PeyulErp.Services
 
         public async Task<IList<GetProductDTO>> GetDiminishedProductsAsync(bool forceRefresh = false)
         {
-            if (forceRefresh)
+            if (forceRefresh || _diminishingProducts.Count == 0)
+            {
+                _diminishingProducts.Clear();
                 await RefreshDiminishingProductsAsync();
+            }
 
             return _diminishingProducts;
         }
@@ -84,6 +88,13 @@ namespace PeyulErp.Services
 
         public async Task RefreshDiminishingProductsAsync()
         {
+            while (_isRefreshing)
+            {
+                if(!_isRefreshing)
+                    break;
+            }
+
+            _isRefreshing = true;
             Console.WriteLine("Begin Refreshing Dinishing List..");
             var diminishingStock = await _stockService.GetDiminishingAsync();
             var tasks = new List<Task>();
@@ -92,8 +103,8 @@ namespace PeyulErp.Services
                 tasks.Add(AddProductToDiminishingListAsync(stock.ProductId));
 
             await Task.WhenAll(tasks);
+            _isRefreshing = false;
             Console.WriteLine($"Done Refreshing Reshreshing Diminisng List.. Count: {_diminishingProducts}");
-
         }
 
         private Stock GetNewStock(Guid productId, int quantity, int reorderLevel = 0) => new Stock
@@ -109,11 +120,11 @@ namespace PeyulErp.Services
         {
             var product = await _productsService.GetProductAsync(productId);
 
-            Console.WriteLine($"Product: {product}");
-
-            if (product is not null)
-                _diminishingProducts.Add(product);
+            if (product is not null && !IsProductInDiminishingList(productId))
+                _diminishingProducts.Add(product);          
         }
+
+        private bool IsProductInDiminishingList(Guid productId) => _diminishingProducts.SingleOrDefault(p => p.Id == productId) != null;
 
         public void RemoveProductFromDiminishingList(Guid productId)
         {

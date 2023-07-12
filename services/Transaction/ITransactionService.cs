@@ -15,6 +15,9 @@ namespace PeyulErp.Services
         Task<bool> DeleteTransaction(Guid transactionId);
         Task<Transaction> CreateTransaction(Transaction transaction);
         Task<bool> UpdateTransaction(Transaction transaction);
-
+        Task<IList<Transaction>> GetByDateRange(DateTime startDate, DateTime endDate);
+        Task<SalesSummary> GetSalesSummary(DateTime startDate, DateTime endDate);
+        Task<IDictionary<int, double>> GetMonthlySalesAggregation();
+        Task<IDictionary<int, double>> GetMonthlyProfitsAggregation();
     }
 }

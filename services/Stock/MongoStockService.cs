@@ -24,7 +24,10 @@ namespace PeyulErp.Services
         //<summary/>
         public async Task<IList<Stock>> GetDiminishingAsync()
         {
-           return (await _stocksCollection.FindAsync("this.Quantity < this.ReorderLevel")).ToList();
+            Console.WriteLine("::::= >Getting diminishing products...");
+            var allStock = await GetStocksAsync();
+
+            return allStock.Where(s => s.Quantity < s.ReorderLevel).ToList();
         }
 
         //<summary>
