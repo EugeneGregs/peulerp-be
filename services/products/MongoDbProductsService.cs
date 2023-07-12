@@ -31,7 +31,7 @@ namespace PeyulErp.Services{
             List<GetProductDTO> productDTOs = new();
 
             foreach(var internalProduct in internalProducts){
-                var category = _productCategoryService.GetProductCategory(internalProduct.CategoryId);
+                var category = await _productCategoryService.GetProductCategoryAsync(internalProduct.CategoryId);
                 productDTOs.Add(internalProduct.AsGetDTO(category));
             }
 
@@ -42,7 +42,7 @@ namespace PeyulErp.Services{
         {
             var filter = _filterBuilder.Eq(p => p.Id, Id);
             var internalProduct = (await _productsCollection.FindAsync(filter)).SingleOrDefault();
-            var category = _productCategoryService.GetProductCategory(internalProduct.CategoryId);
+            var category = await _productCategoryService.GetProductCategoryAsync(internalProduct.CategoryId);
 
             return internalProduct?.AsGetDTO(category);
         }
@@ -50,7 +50,7 @@ namespace PeyulErp.Services{
         public async Task<GetProductDTO> CreateProductAsync(SaveProductDTO product)
         {
             var productInternal = product.AsInternaProduct();
-            var category = _productCategoryService.GetProductCategory(product.CategoryId);
+            var category = await _productCategoryService.GetProductCategoryAsync(product.CategoryId);
 
             await _productsCollection.InsertOneAsync(productInternal);
 

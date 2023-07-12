@@ -3,7 +3,7 @@ using PeyulErp.Extensions;
 using PeyulErp.Models;
 
 namespace PeyulErp.Services{
-    public class InMemoryProductCategoryService : IProductCategoryService
+    public class InMemoryProductCategoryService
     {
         private readonly List<ProductCategory> _productCategories;
 
@@ -18,7 +18,7 @@ namespace PeyulErp.Services{
             };
         }
 
-        public GetProductCategoryDTO CreateProductCategory(ProductCategoryDTO productCategory)
+        public GetProductCategoryDTO CreateProductCategoryAsync(ProductCategoryDTO productCategory)
         {
             var internalProductcategory = productCategory.AsInternal();
             _productCategories.Add(internalProductcategory);
@@ -26,7 +26,7 @@ namespace PeyulErp.Services{
             return internalProductcategory.AsDTO();
         }
 
-        public bool DeleteProductCategory(Guid Id)
+        public bool DeleteProductCategoryAsync(Guid Id)
         {
             var index = _productCategories.FindIndex( c => c.Id == Id);
 
@@ -39,7 +39,7 @@ namespace PeyulErp.Services{
             return true;
         }
 
-        public IList<GetProductCategoryDTO> GetProductCategories()
+        public IList<GetProductCategoryDTO> GetProductCategoriesAsync()
         {
             var result = new List<GetProductCategoryDTO>();
 
@@ -50,14 +50,14 @@ namespace PeyulErp.Services{
             return result;
         }
 
-        public ProductCategory GetProductCategory(Guid Id)
+        public ProductCategory GetProductCategoryAsync(Guid Id)
         {
             var category = _productCategories.Find(c => c.Id == Id);
 
             return category;
         }
 
-        public bool UpdateProductCategory(ProductCategoryDTO productCategory, Guid Id)
+        public bool UpdateProductCategoryAsync(ProductCategoryDTO productCategory, Guid Id)
         {
             var index = _productCategories.FindIndex(c => c.Id == Id);
 

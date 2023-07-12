@@ -22,32 +22,33 @@ namespace PeyulErp.Services{
             _productCategoryCollections = database.GetCollection<ProductCategory>(_mongodbSettings.ProductCategoriesCollectionName);
         }
 
-        public GetProductCategoryDTO CreateProductCategory(ProductCategoryDTO productCategory)
+        public async Task<GetProductCategoryDTO> CreateProductCategoryAsync(ProductCategoryDTO productCategory)
         {
             var internalProductcategory = productCategory.AsInternal();
 
-            _productCategoryCollections.InsertOne(internalProductcategory);
+            await _productCategoryCollections.InsertOneAsync(internalProductcategory);
 
             return internalProductcategory.AsDTO();
         }
 
-        public bool DeleteProductCategory(Guid Id)
+        public async Task<bool> DeleteProductCategoryAsync(Guid Id)
         {
             var filter = filterBuilder.Eq(p => p.Id, Id);
-            var tobeDeleted = _productCategoryCollections.Find(filter);
+            var tobeDeleted = await _productCategoryCollections.FindAsync(filter);
 
             if(tobeDeleted is null){
                 return false;
             }
 
-            _productCategoryCollections.DeleteOne(filter);
+            await _productCategoryCollections.DeleteOneAsync(filter);
 
             return true;
         }
 
-        public IList<GetProductCategoryDTO> GetProductCategories()
+        public async Task<IList<GetProductCategoryDTO>> GetProductCategoriesAsync()
         {
-            var internalCategories = _productCategoryCollections.Find(new BsonDocument()).ToList();
+            Console.WriteLine($"Connection String: {_mongodbSettings.ConnectionString}, Database Name: {_mongodbSettings.DatabaseName}");
+            var internalCategories = (await _productCategoryCollections.FindAsync(new BsonDocument())).ToList();
             List<GetProductCategoryDTO> productCategoryDTO = new();
 
             foreach(var internalCategory in internalCategories) {
@@ -57,17 +58,17 @@ namespace PeyulErp.Services{
             return productCategoryDTO;
         }
 
-        public ProductCategory GetProductCategory(Guid Id)
+        public async Task<ProductCategory> GetProductCategoryAsync(Guid Id)
         {
             var filter = filterBuilder.Eq(p => p.Id, Id);
 
-            return _productCategoryCollections.Find(filter).SingleOrDefault();
+            return (await _productCategoryCollections.FindAsync(filter)).SingleOrDefault();
         }
 
-        public bool UpdateProductCategory(ProductCategoryDTO productCategory, Guid Id)
+        public async Task<bool> UpdateProductCategoryAsync(ProductCategoryDTO productCategory, Guid Id)
         {
             var filter = filterBuilder.Eq(p => p.Id, Id);
-            var existingCategory = _productCategoryCollections.Find(filter).SingleOrDefault();
+            var existingCategory = (await _productCategoryCollections.FindAsync(filter)).SingleOrDefault();
 
             if (existingCategory is null){
                 return false;
@@ -78,7 +79,7 @@ namespace PeyulErp.Services{
                 UpdateDate = DateTime.Now
             };
 
-            _productCategoryCollections.ReplaceOne(filter, newCategory);
+            await _productCategoryCollections.ReplaceOneAsync(filter, newCategory);
 
             return true;
         }

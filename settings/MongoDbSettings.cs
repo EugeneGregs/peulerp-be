@@ -8,5 +8,6 @@ namespace PeyulErp.Settings{
         public string StocksCollectionName { get; set; }
         public string PuchasesCollectionName { get; set; }
         public string SupplierCollectionName { get; set; }
+        public string ExpensesCollectionName { get; set; }
     }
 }
