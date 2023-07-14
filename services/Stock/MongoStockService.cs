@@ -24,7 +24,6 @@ namespace PeyulErp.Services
         //<summary/>
         public async Task<IList<Stock>> GetDiminishingAsync()
         {
-            Console.WriteLine("::::= >Getting diminishing products...");
             var allStock = await GetStocksAsync();
 
             return allStock.Where(s => s.Quantity < s.ReorderLevel).ToList();
@@ -57,15 +56,29 @@ namespace PeyulErp.Services
            return (await _stocksCollection.FindAsync(new BsonDocument())).ToList();
         }
 
-        public async Task UpsertStockAsync(Stock stock)
+        //TODO: Add Logic to validate product existance
+        public async Task<Stock> UpsertStockAsync(Stock stock)
         {
             var filter = _filterBuilder.Eq(s => s.Id, stock.Id);
             var existingStock = (await _stocksCollection.FindAsync(filter)).SingleOrDefault();
+            
+            if(existingStock != null)
+            {
+                var newStock = existingStock with
+                {
+                    Quantity = stock.Quantity,
+                    ReorderLevel = stock.ReorderLevel,
+                    UpdateDate = DateTime.UtcNow
+                };
 
-            if (existingStock is null)
-                await _stocksCollection.InsertOneAsync(stock with { Id = Guid.NewGuid(), CreateDate = DateTime.Now });
+                await _stocksCollection.ReplaceOneAsync(filter, newStock);
+            }
             else
-                await _stocksCollection.ReplaceOneAsync(filter, existingStock with { UpdateDate = DateTime.Now, Quantity = stock.Quantity, ReorderLevel = stock.ReorderLevel });            
+            {
+                await _stocksCollection.InsertOneAsync(stock with { CreateDate = DateTime.UtcNow, UpdateDate = DateTime.UtcNow });
+            }          
+
+            return stock;
         }
 
         public Task<bool> DeleteStockAsync(Guid Id)

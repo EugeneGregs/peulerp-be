@@ -8,7 +8,7 @@ namespace PeyulErp.Services
         Task<Stock> GetStockByProductIdAsync(Guid productId);
         Task<IList<Stock>> GetStocksAsync();
         Task<bool> DeleteStockAsync(Guid Id);
-        Task UpsertStockAsync(Stock stock);
+        Task<Stock> UpsertStockAsync(Stock stock);
         Task<IList<Stock>> GetDiminishingAsync();
         Task<bool> IsBelowReoderLevel(Guid productId);
     }
