@@ -165,15 +165,17 @@ namespace PeyulErp.Services
             var product  = await _productsService.GetProductAsync(stock.ProductId);
             inventoryList.Add(new Inventory
             {
-                Id = product.Id,
+                Id = stock.Id,
                 Name = product.Name,
                 ProductCategory = product.ProductCategory,
                 BuyingPrice = product.BuyingPrice,
                 SellingPrice = product.SellingPrice,
                 Quantity = stock.Quantity,
-                CreatedDate = product.CreatedDate,
-                UpdatedDate = product.UpdatedDate,
-                BarCode = product.BarCode
+                CreatedDate = stock.CreateDate,
+                UpdatedDate = stock.UpdateDate,
+                BarCode = product.BarCode,
+                ReorderLevel = stock.ReorderLevel,
+                ProductId = product.Id
             });
         }
     }

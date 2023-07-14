@@ -11,18 +11,21 @@ namespace PeyulErp.Services{
     {
         private readonly IMongoCollection<Product> _productsCollection;
         private readonly IProductCategoryService _productCategoryService;
+        private readonly IStockService _stockService;
         private readonly FilterDefinitionBuilder<Product> _filterBuilder = Builders<Product>.Filter;
 
         public MongoDbProductsService(
             IOptions<MongoDbSettings> mongodbSettings,
             IMongoClient mongoClient,
-            IProductCategoryService productCategoryService)
+            IProductCategoryService productCategoryService,
+            IStockService stockService)
         {
             var _databaseSettings = mongodbSettings.Value;
             var mongoDatabase = mongoClient.GetDatabase(_databaseSettings.DatabaseName);
 
             _productsCollection = mongoDatabase.GetCollection<Product>(_databaseSettings.ProductsCollectionName);
             _productCategoryService = productCategoryService;
+            _stockService = stockService;
         }
 
         public async Task<IList<GetProductDTO>> GetProductsAsync()
@@ -47,6 +50,7 @@ namespace PeyulErp.Services{
             return internalProduct?.AsGetDTO(category);
         }
 
+        #pragma warning disable 4014
         public async Task<GetProductDTO> CreateProductAsync(SaveProductDTO product)
         {
             var productInternal = product.AsInternaProduct();
@@ -54,7 +58,25 @@ namespace PeyulErp.Services{
 
             await _productsCollection.InsertOneAsync(productInternal);
 
+            //update stock assynchnously
+            await UpdateStockAsync(productInternal.Id, product.Quantity, product.ReorderLevel).ConfigureAwait(false);
+
             return productInternal.AsGetDTO(category);
+        }
+        #pragma warning restore 4014
+
+
+
+        private async Task UpdateStockAsync(Guid productId, int quantity, int reorderLevel)
+        {
+            var stock = new Stock
+            {
+                ProductId = productId,
+                Quantity = quantity,
+                ReorderLevel = reorderLevel
+            };
+
+           await _stockService.UpsertStockAsync(stock);
         }
 
         public async Task<bool> UpdateProductAsync(SaveProductDTO productDTO, Guid productId)
