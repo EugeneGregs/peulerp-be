@@ -37,12 +37,12 @@ namespace PeyulErp.Controllers
         {
             if(filter is null)
             {
-                return Ok(await _dashboardService.GetDashboardSummary(DateTime.UtcNow, DateTime.UtcNow));
+                return Ok(await _dashboardService.GetDashboardSummaryAsync(DateTime.UtcNow, DateTime.UtcNow));
             }
             else
             {
                 GetReportDates(out var startDate, out var endDate, filter);
-                return Ok(await _dashboardService.GetDashboardSummary(startDate, endDate));
+                return Ok(await _dashboardService.GetDashboardSummaryAsync(startDate, endDate));
             }
         }
 

@@ -4,9 +4,9 @@ namespace PeyulErp.Services
 {
     public interface IDashboardService
     {
-        Task<ExpenseSummary> GetExpenseSummary(DateTime startDate, DateTime endDate);
-        Task<SalesSummary> GetSalesSummary(DateTime startDate, DateTime endDate);
-        Task<PurchaseSummary> GetPurchaseSummary(DateTime startDate, DateTime endDate);
-        Task<Dashboard> GetDashboardSummary(DateTime startDate, DateTime endDate);
+        Task<ExpenseSummary> GetExpenseSummaryAsync(DateTime startDate, DateTime endDate);
+        Task<SalesSummary> GetSalesSummaryAsync(DateTime startDate, DateTime endDate);
+        Task<PurchaseSummary> GetPurchaseSummaryAsync(DateTime startDate, DateTime endDate);
+        Task<Dashboard> GetDashboardSummaryAsync(DateTime startDate, DateTime endDate);
     }
 }

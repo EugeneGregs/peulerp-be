@@ -86,6 +86,7 @@ namespace PeyulErp.Services
                 PurchaseDate = purchase.PurchaseDate,
                 Description = purchase.Description,
                 RefferenceNo = purchase.RefferenceNo,
+                PaymentType = purchase.PaymentType,
                 UpdateDate = DateTime.UtcNow
             };
 
@@ -206,8 +207,6 @@ namespace PeyulErp.Services
             if(startDate == endDate)
                 endDate = endDate.AddDays(1);
 
-            Console.WriteLine($"Start Date: {startDate.Date} End Date: {endDate.Date}");
-
             var filter = _filter.Gte(p => p.PurchaseDate, startDate) & _filter.Lte(p => p.PurchaseDate, endDate);
 
             var purchaseSummary = (await _purchasesCollection.Aggregate()
@@ -221,8 +220,6 @@ namespace PeyulErp.Services
             purchaseSummary.MonthlyPurchaseTotals = new Dictionary<int, double>();
             purchaseSummary.MonthlyPurchaseTotals = await GetMonthlyTotalPurchases();
 
-            Console.WriteLine($"Purchase Summary: {purchaseSummary}");
-
             return purchaseSummary;
         }
 
@@ -233,6 +230,16 @@ namespace PeyulErp.Services
             var thisYearPurchases = (await _purchasesCollection.FindAsync(filter)).ToList();
             
             return thisYearPurchases.GroupBy(p => p.PurchaseDate.Month).ToDictionary(g => g.Key, g => (double)g.Sum(p => p.Amount));
+        }
+
+        public async Task<IList<Purchase>> GetByPaymentType(PaymentType paymentType)
+        {
+            var dateFilter = _filter.And(_filter.Gte(p => p.PurchaseDate, DateTime.UtcNow.Date), _filter.Lt(p => p.PurchaseDate, DateTime.UtcNow.Date.AddDays(1)));
+            var paymentTypeFilter = _filter.Eq(p => p.PaymentType, paymentType);
+
+            var filter = dateFilter & paymentTypeFilter;
+
+            return (await _purchasesCollection.FindAsync(filter)).ToList();
         }
     }
 }

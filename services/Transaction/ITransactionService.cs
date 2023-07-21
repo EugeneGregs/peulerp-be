@@ -19,5 +19,6 @@ namespace PeyulErp.Services
         Task<SalesSummary> GetSalesSummary(DateTime startDate, DateTime endDate);
         Task<IDictionary<int, double>> GetMonthlySalesAggregation();
         Task<IDictionary<int, double>> GetMonthlyProfitsAggregation();
+        Task<IList<Transaction>> GetByPaymentType(PaymentType paymentType);
     }
 }

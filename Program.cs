@@ -35,6 +35,8 @@ builder.Services.AddCors(options => {
     builder.Services.AddSingleton<ISupplierService, MongoSupplierService>();
     builder.Services.AddSingleton<IExpenseService, MongoExpenseService>();
     builder.Services.AddSingleton<IDashboardService, DefaultDashboardService>();
+    builder.Services.AddSingleton<IUsersService, MongoUsersService>();
+    builder.Services.AddSingleton<IMailingService, MailKitMailingService>();
 
     builder.Services.AddSingleton<IMongoClient>(serviceProvider =>
     {
@@ -48,6 +50,8 @@ builder.Services.AddCors(options => {
         builder.Configuration.GetSection("MongoDbSettings"));
     builder.Services.Configure<SystemSettings>(
         builder.Configuration.GetRequiredSection("SystemSettings"));
+    builder.Services.Configure<MailSettings>(
+               builder.Configuration.GetSection("MailSettings"));
 
     builder.Services
     .AddMvc(options => options.SuppressAsyncSuffixInActionNames = false)

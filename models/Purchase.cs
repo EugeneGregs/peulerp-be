@@ -9,5 +9,6 @@ namespace PeyulErp.Models{
         public string RefferenceNo { get; init; }
         public DateTime PurchaseDate { get; init; }
         public List<PurchaseProduct> PurchaseProducts { get; init; }
+        public PaymentType PaymentType { get; init; }
     }
 }

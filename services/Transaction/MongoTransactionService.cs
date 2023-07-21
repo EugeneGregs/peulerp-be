@@ -137,5 +137,17 @@ namespace PeyulErp.Services
 
             return sales.ToList().GroupBy(s => s.CreateDate.Month).ToDictionary(g => g.Key, g => (double)g.Sum(s => s.TotalMargin));
         }
+
+        public async Task<IList<Transaction>> GetByPaymentType(PaymentType paymentType)
+        {
+            var dateFilter = _filterBuilder.And(_filterBuilder.Gte(t => t.CreateDate, DateTime.UtcNow.Date), _filterBuilder.Lt(t => t.CreateDate, DateTime.UtcNow.Date.AddDays(1)));
+            var paymentTypeFilter = _filterBuilder.Eq(t => (int)t.PaymentType, (int)paymentType);
+
+            var filter = dateFilter & paymentTypeFilter;
+
+            var transcations = await _transactionsCollection.FindAsync(filter).Result.ToListAsync();
+
+            return transcations;
+        }
     }
 }
