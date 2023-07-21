@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PeyulErp.Contracts;
 using PeyulErp.Extensions;
@@ -6,6 +7,7 @@ using PeyulErp.Services;
 
 namespace PeyulErp.Controllers {
 
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class ProductCategoryController : ControllerBase {
@@ -31,6 +33,7 @@ namespace PeyulErp.Controllers {
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateProductCategory(ProductCategoryDTO productcategory){
             var createdCategory = await _productCategoryService.CreateProductCategoryAsync(productcategory);
 
@@ -38,6 +41,7 @@ namespace PeyulErp.Controllers {
         }
 
         [HttpPost("collection")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SaveCategories(IList<ProductCategoryDTO> productcategories)
         {
             var tasks = new List<Task<GetProductCategoryDTO>>();
@@ -53,6 +57,7 @@ namespace PeyulErp.Controllers {
         }
 
         [HttpPut("{Id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateProductCategory(ProductCategoryDTO productcategory, Guid Id){
             var updated = await _productCategoryService.UpdateProductCategoryAsync(productcategory, Id);
 
@@ -64,6 +69,7 @@ namespace PeyulErp.Controllers {
         }
 
         [HttpDelete("{Id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteProductCategory(Guid Id){
             var deleted = await _productCategoryService.DeleteProductCategoryAsync(Id);
 

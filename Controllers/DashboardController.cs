@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PeyulErp.Contracts;
 using PeyulErp.Models;
 using PeyulErp.Services;
+using PeyulErp.Utility;
 
 namespace PeyulErp.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class DashboardController : ControllerBase
@@ -35,15 +38,26 @@ namespace PeyulErp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDashBoardAsync(ReportFilter filter = null)
         {
-            if(filter is null)
+            Dashboard dashboard = null;
+
+            if (filter is null)
             {
-                return Ok(await _dashboardService.GetDashboardSummaryAsync(DateTime.UtcNow, DateTime.UtcNow));
+                dashboard = await _dashboardService.GetDashboardSummaryAsync(DateTime.UtcNow, DateTime.UtcNow);
             }
             else
             {
                 GetReportDates(out var startDate, out var endDate, filter);
-                return Ok(await _dashboardService.GetDashboardSummaryAsync(startDate, endDate));
+                dashboard = await _dashboardService.GetDashboardSummaryAsync(startDate, endDate);
             }
+
+            // Don't show returns to non-admin users
+            if(dashboard != null && !User.IsInRole(IdentityHelper.AdminUserPolicyName))
+            {
+                dashboard.SalesSummary.GrossProfit = 0;
+                dashboard.AssetSummary = new AssetSummary();
+            }
+
+            return Ok(dashboard);
         }
 
         private void GetReportDates(out DateTime startDate, out DateTime endDate, ReportFilter filter)

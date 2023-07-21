@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PeyulErp.Models;
 using PeyulErp.Services;
+using System.Data;
 
 namespace PeyulErp.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class SuppliersController : ControllerBase
@@ -51,6 +54,7 @@ namespace PeyulErp.Controllers
         }
 
         [HttpDelete("{Id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteSupplier(Guid Id)
         {
             var deleted = await _supplierService.DeleteSupplierAsync(Id);

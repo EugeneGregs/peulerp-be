@@ -1,20 +1,26 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using PeyulErp.Model;
 using PeyulErp.Models;
 using PeyulErp.Services;
+using PeyulErp.Settings;
 using PeyulErp.Utility;
 
 namespace PeyulErp.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class UsersController: ControllerBase
     {
         private readonly IUsersService _usersService;
+        private readonly JwtSettings _jwtSettings;
 
-        public UsersController(IUsersService usersService)
+        public UsersController(IUsersService usersService, IOptions<JwtSettings> jwtSettings)
         {
             _usersService = usersService;
+            _jwtSettings = jwtSettings.Value;
         }
 
         [HttpGet]
@@ -65,6 +71,7 @@ namespace PeyulErp.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> CreateUser(User user)
         {
             try
@@ -85,6 +92,7 @@ namespace PeyulErp.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> UpdateUser(Guid id, User user)
         {
             try
@@ -113,6 +121,7 @@ namespace PeyulErp.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeleteUser(Guid id)
         {
             try
@@ -134,6 +143,7 @@ namespace PeyulErp.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult> Login(User loginUser)
         {
@@ -146,7 +156,7 @@ namespace PeyulErp.Controllers
                     return Unauthorized("UserName Or Password Incorrect");
                 }
 
-                return Ok(user);
+                return Ok(new LoginResponse(user.GetUserToken(_jwtSettings)));
             }
             catch(Exception ex)
             {
@@ -154,6 +164,7 @@ namespace PeyulErp.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("forgot-password")]
         public async Task<ActionResult> ForgotPassword(User user)
         {

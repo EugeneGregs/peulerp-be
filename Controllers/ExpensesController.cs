@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PeyulErp.Models;
 using PeyulErp.Services;
 
 namespace PeyulErp.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class ExpenseController : ControllerBase
@@ -51,6 +53,7 @@ namespace PeyulErp.Controllers
         }
 
         [HttpDelete("{Id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteExpense(Guid Id)
         {
             var deleted = await _expenseService.DeleteExpenseAsync(Id);

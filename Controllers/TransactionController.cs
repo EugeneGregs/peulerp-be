@@ -4,6 +4,7 @@
 // </copyright>
 //--------------------------------------------------------------------
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PeyulErp.Contracts;
 using PeyulErp.Models;
@@ -11,7 +12,7 @@ using PeyulErp.Services;
 
 namespace PeyulErp.Controllers
 {
-
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class TransactionController : ControllerBase
@@ -54,7 +55,8 @@ namespace PeyulErp.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProductAsync(Guid Id)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteTransactionAsync(Guid Id)
         {
             var deleted = await _transactionService.DeleteTransaction(Id);
 
