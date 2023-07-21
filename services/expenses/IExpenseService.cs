@@ -12,5 +12,6 @@ namespace PeyulErp.Services
         Task<IList<Expense>> GetByDateRange(DateTime startDate, DateTime endDate);
         Task<ExpenseSummary> GetExpenseSummary(DateTime startDate, DateTime endDate);
         Task<IDictionary<int,double>> GetMonthlyAggregation();
+        Task<IList<Expense>> GetByPaymentType(PaymentType paymentType);
     }   
 }  

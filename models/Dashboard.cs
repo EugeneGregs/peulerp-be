@@ -8,5 +8,6 @@ namespace PeyulErp.Models
         public PurchaseSummary PurchaseSummary { get; set; }
         public ExpenseSummary ExpenseSummary { get; set; }
         public AssetSummary AssetSummary { get; set; }
+        public CashSummary CashSummary { get; set; }
     }
 }

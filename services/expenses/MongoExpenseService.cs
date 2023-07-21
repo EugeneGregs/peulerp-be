@@ -46,6 +46,18 @@ namespace PeyulErp.Services
             return await _expensesCollection.Find(filter).ToListAsync();
         }
 
+        public async Task<IList<Expense>> GetByPaymentType(PaymentType paymentType)
+        {
+            var dateFilter = _filter.And(_filter.Gte(p => p.ExpenseDate, DateTime.UtcNow.Date), _filter.Lt(p => p.ExpenseDate, DateTime.UtcNow.Date.AddDays(1)));
+            var paymentTypeFilter = _filter.Eq(p => (int)p.PaymentType, (int)paymentType);
+
+            var filter = dateFilter & paymentTypeFilter;
+
+            var expenses = await _expensesCollection.FindAsync(filter).Result.ToListAsync();
+
+            return expenses;
+        }
+
         public async Task<Expense> GetExpenseAsync(Guid Id)
         {
             return (await _expensesCollection.FindAsync(_filter.Eq(p => p.Id, Id))).FirstOrDefault();
@@ -69,17 +81,10 @@ namespace PeyulErp.Services
 
             var filter = _filter.And(_filter.Gte(p => p.ExpenseDate, startDate.Date), _filter.Lte(p => p.ExpenseDate, endDate.Date));
 
-            var ExpenseSummary = (await _expensesCollection.Aggregate()
-                .Match(filter)
-                .Group(p => p.ExpenseType, g => new ExpenseSummary
-                {
-                    TotalExpenses = g.Sum(p => p.Amount),
-                    TotalCleaningExpenses = g.Sum(p => p.ExpenseType == ExpenseType.Cleaning ? p.Amount : 0),
-                    TotalOther = g.Sum(p => p.ExpenseType == ExpenseType.Other ? p.Amount : 0),
-                    TotalOtherPurchases = g.Sum(p => p.ExpenseType == ExpenseType.OtherPurchases ? p.Amount : 0),
-                    TotalUtilities = g.Sum(p => p.ExpenseType == ExpenseType.Utilities ? p.Amount : 0)
-                })
-                .ToListAsync()).FirstOrDefault() ?? new ExpenseSummary();
+            var expenses = (await _expensesCollection.FindAsync(filter)).ToList();
+            var ExpenseSummary = new ExpenseSummary();
+
+            ExpenseSummary.TotalExpenses = expenses.Sum(e => e.Amount);
 
             ExpenseSummary.MonthlyExpenseSummary = new Dictionary<int, double>();
             ExpenseSummary.MonthlyExpenseSummary = await GetMonthlyAggregation();

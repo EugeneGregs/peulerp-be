@@ -15,42 +15,21 @@ namespace PeyulErp.Services
             _salesService = salesService;
         }
 
-        public async Task<ExpenseSummary> GetExpenseSummary(DateTime startDate, DateTime endDate) => await _expenseService.GetExpenseSummary(startDate, endDate);
+        public async Task<ExpenseSummary> GetExpenseSummaryAsync(DateTime startDate, DateTime endDate) => await _expenseService.GetExpenseSummary(startDate, endDate);
 
-        public async Task<SalesSummary> GetSalesSummary(DateTime startDate, DateTime endDate) => await _salesService.GetSalesSummary(startDate, endDate);
+        public async Task<SalesSummary> GetSalesSummaryAsync(DateTime startDate, DateTime endDate) => await _salesService.GetSalesSummary(startDate, endDate);
 
-        public async Task<PurchaseSummary> GetPurchaseSummary(DateTime startDate, DateTime endDate) => await _purchasesService.GetPurchaseSummary(startDate, endDate);
+        public async Task<PurchaseSummary> GetPurchaseSummaryAsync(DateTime startDate, DateTime endDate) => await _purchasesService.GetPurchaseSummary(startDate, endDate);
 
-        //public async Task<Dashboard> GetDashboardSummary(DateTime startDate, DateTime endDate)
-        //{
-        //    Console.WriteLine($"Getting Dahsboar Summary for dates {startDate} - {endDate}");
-        //    var fetchTasks = new List<Task>();
-        //    var dashboard = new Dashboard
-        //    {
-        //        ExpenseSummary = new ExpenseSummary(),
-        //        PurchaseSummary = new PurchaseSummary(),
-        //        SalesSummary = new SalesSummary()
-        //    };
-
-        //    fetchTasks.Add(Task.Run(async () => { dashboard.ExpenseSummary = await GetExpenseSummary(startDate, endDate); }));
-        //    fetchTasks.Add(Task.Run(async () => { dashboard.PurchaseSummary = await GetPurchaseSummary(startDate, endDate); }));
-        //    fetchTasks.Add(Task.Run(async () => { dashboard.SalesSummary = await GetSalesSummary(startDate, endDate); }));
-
-        //    await Task.WhenAll(fetchTasks);
-
-        //    Console.WriteLine($"Finished fetching dashboard summary: {dashboard}");
-
-        //    return dashboard; 
-        //}
-        public async Task<Dashboard> GetDashboardSummary(DateTime startDate, DateTime endDate)
+        public async Task<Dashboard> GetDashboardSummaryAsync(DateTime startDate, DateTime endDate)
         {
-            Console.WriteLine($"Getting Dashboard Summary for dates {startDate} - {endDate}");
             var fetchTasks = new List<Task>();
             var dashboard = new Dashboard
             {
                 ExpenseSummary = new ExpenseSummary(),
                 PurchaseSummary = new PurchaseSummary(),
-                SalesSummary = new SalesSummary()
+                SalesSummary = new SalesSummary(),
+                CashSummary = new CashSummary(),
             };
 
             try
@@ -59,11 +38,10 @@ namespace PeyulErp.Services
                 {
                     try
                     {
-                        dashboard.ExpenseSummary = await GetExpenseSummary(startDate, endDate);
+                        dashboard.ExpenseSummary = await GetExpenseSummaryAsync(startDate, endDate);
                     }
                     catch (Exception ex)
                     {
-                        // Handle exception if necessary
                         Console.WriteLine($"An error occurred while fetching expense summary: {ex.Message}");
                     }
                 }));
@@ -72,11 +50,22 @@ namespace PeyulErp.Services
                 {
                     try
                     {
-                        dashboard.PurchaseSummary = await GetPurchaseSummary(startDate, endDate);
+                        dashboard.CashSummary = await GetCashSummaryAsync();
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine($"An error occurred while fetching cash summary: {ex.Message}");
+                    }
+                }));
+
+                fetchTasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        dashboard.PurchaseSummary = await GetPurchaseSummaryAsync(startDate, endDate);
                     }
                     catch (Exception ex)
                     {
-                        // Handle exception if necessary
                         Console.WriteLine($"An error occurred while fetching purchase summary: {ex.Message}");
                     }
                 }));
@@ -85,7 +74,7 @@ namespace PeyulErp.Services
                 {
                     try
                     {
-                        dashboard.SalesSummary = await GetSalesSummary(startDate, endDate);
+                        dashboard.SalesSummary = await GetSalesSummaryAsync(startDate, endDate);
                     }
                     catch (Exception ex)
                     {
@@ -107,6 +96,101 @@ namespace PeyulErp.Services
                 // Return a default dashboard or rethrow the exception
                 return new Dashboard();
             }
+        }
+
+        public async Task<CashSummary> GetCashSummaryAsync()
+        {
+            var cashSummary = new CashSummary { CashInMobile = 0, CashInShop = 0 };
+            var purchasesSumary = new Dictionary<string, double>();
+            var salesSummary = new Dictionary<string, double>();
+            var expensesSummary = new Dictionary<string, double>();
+            var tasks = new List<Task>();
+
+            try
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        purchasesSumary = await GetPurchasesSummary();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"An error occurred while fetching purchases cash summary: {ex.Message}");
+                    }
+                }));
+
+                tasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        salesSummary = await GetSalesSummary();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"An error occurred while fetching sales cash summary: {ex.Message}");
+                    }
+                }));
+
+                tasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        expensesSummary = await GetExpensesSummary();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"An error occurred while fetching expenses cash summary: {ex.Message}");
+                    }
+                }));
+
+                await Task.WhenAll(tasks);
+
+                cashSummary.CashInMobile =  salesSummary["Mobile"];
+                cashSummary.CashInShop = salesSummary["Cash"] - (expensesSummary["Cash"] + purchasesSumary["Cash"]);
+
+                return cashSummary;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while fetching cash summary: {ex.Message}");
+                return new CashSummary();
+            }
+        }
+
+        private async Task<Dictionary<string,double>> GetPurchasesSummary()
+        {
+            var cashPurchases = await _purchasesService.GetByPaymentType(PaymentType.Cash);
+            var amountSummary = new Dictionary<string, double>
+            {
+                { "Cash", cashPurchases.Sum(p => p.Amount) }
+            };
+
+            return amountSummary;
+        }
+
+        private async Task<Dictionary<string, double>> GetSalesSummary()
+        {
+            var cashSales = await _salesService.GetByPaymentType(PaymentType.Cash);
+            var mobileSales = await _salesService.GetByPaymentType(PaymentType.Mobile);
+            var amountSummary = new Dictionary<string, double>
+            {
+                { "Cash", cashSales.Sum(p => p.TotalCost) },
+                { "Mobile", mobileSales.Sum(p => p.TotalCost) }
+            };
+
+            return amountSummary;
+        }
+
+        private async Task<Dictionary<string, double>> GetExpensesSummary()
+        {
+            var cashExpenses = await _expenseService.GetByPaymentType(PaymentType.Cash);
+            var amountSummary = new Dictionary<string, double>
+            {
+                { "Cash", cashExpenses.Sum(p => p.Amount) }
+            };
+
+            return amountSummary;
         }
     }
 }
