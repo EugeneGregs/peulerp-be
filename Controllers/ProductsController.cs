@@ -1,10 +1,13 @@
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PeyulErp.Contracts;
 using PeyulErp.Services;
+using PeyulErp.Utility;
 
 namespace PeyulErp.Controllers{
 
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class ProductsController : ControllerBase {
@@ -64,6 +67,7 @@ namespace PeyulErp.Controllers{
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = IdentityHelper.AdminUserPolicyName)]
         public async Task<IActionResult> DeleteProductAsync(Guid Id){
             var deleted = await _productService.DeleteProductAsync(Id);
 

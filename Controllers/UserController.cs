@@ -1,20 +1,27 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using PeyulErp.Model;
 using PeyulErp.Models;
 using PeyulErp.Services;
+using PeyulErp.Settings;
 using PeyulErp.Utility;
 
 namespace PeyulErp.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class UsersController: ControllerBase
     {
         private readonly IUsersService _usersService;
+        private readonly JwtSettings _jwtSettings;
+        private const string AdminRole = "Admin";
 
-        public UsersController(IUsersService usersService)
+        public UsersController(IUsersService usersService, IOptions<JwtSettings> jwtSettings)
         {
             _usersService = usersService;
+            _jwtSettings = jwtSettings.Value;
         }
 
         [HttpGet]
@@ -24,10 +31,14 @@ namespace PeyulErp.Controllers
             {
                 var users = (await _usersService.GetAllAsync())
                     .Select(u => new {
+                        Id = u.Id,
                         Name = u.Name,
                         Email = u.Email,
                         PhoneNumber = u.PhoneNumber,
-                        CreateDate = u.CreateDate
+                        CreateDate = u.CreateDate,
+                        Role = u.Role,
+                        Status = u.Status,
+                        UpdateDate = u.UpdateDate
                     });
 
                 return Ok(users);
@@ -65,6 +76,8 @@ namespace PeyulErp.Controllers
         }
 
         [HttpPost]
+        //[AllowAnonymous]
+        [Authorize(Roles = AdminRole)]
         public async Task<ActionResult> CreateUser(User user)
         {
             try
@@ -85,6 +98,7 @@ namespace PeyulErp.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = AdminRole)]
         public async Task<ActionResult> UpdateUser(Guid id, User user)
         {
             try
@@ -113,6 +127,7 @@ namespace PeyulErp.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = AdminRole)]
         public async Task<ActionResult> DeleteUser(Guid id)
         {
             try
@@ -134,6 +149,7 @@ namespace PeyulErp.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult> Login(User loginUser)
         {
@@ -146,7 +162,7 @@ namespace PeyulErp.Controllers
                     return Unauthorized("UserName Or Password Incorrect");
                 }
 
-                return Ok(user);
+                return Ok(new LoginResponse(user.GetUserToken(_jwtSettings)));
             }
             catch(Exception ex)
             {
@@ -154,6 +170,7 @@ namespace PeyulErp.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("forgot-password")]
         public async Task<ActionResult> ForgotPassword(User user)
         {

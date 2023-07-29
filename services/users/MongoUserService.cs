@@ -54,7 +54,7 @@ namespace PeyulErp.Services
         {
             var existingUser = (await _usersCollection.FindAsync(_filterBuilder.Eq(u => u.Id, Id))).FirstOrDefault();
 
-            if (existingUser != null)
+            if (existingUser == null)
             {
                 return false;
             }

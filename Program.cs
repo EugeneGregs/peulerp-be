@@ -1,12 +1,16 @@
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using PeyulErp.Services;
 using PeyulErp.Settings;
+using PeyulErp.Utility;
+using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,11 +22,36 @@ BsonSerializer.RegisterSerializer(new DateTimeSerializer(BsonType.String));
 
 //Cors
 builder.Services.AddCors(options => {
-    options.AddPolicy(name: MyAllowSpecificOrigins, policy  => { policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); });
+    options.AddPolicy(name: MyAllowSpecificOrigins, policy  => { policy.WithOrigins("http://localhost:8002").AllowAnyHeader().AllowAnyMethod().AllowCredentials(); });
 });
 
 // configure Services
 {
+    //Authentication
+    builder.Services.AddAuthentication(x =>
+    {
+        x.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    }).AddJwtBearer(x =>
+    {
+        x.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+            ValidAudience = builder.Configuration["JwtSettings:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"])),
+            ValidateIssuerSigningKey = true,
+            ValidateAudience = true,
+            ValidateIssuer = true,
+            ValidateLifetime = true
+        };
+    });
+
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy(IdentityHelper.AdminUserPolicyName, policy => policy.RequireClaim(IdentityHelper.AdminUserClaimName, "Admin"));
+    });
+
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
@@ -52,6 +81,8 @@ builder.Services.AddCors(options => {
         builder.Configuration.GetRequiredSection("SystemSettings"));
     builder.Services.Configure<MailSettings>(
                builder.Configuration.GetSection("MailSettings"));
+    builder.Services.Configure<JwtSettings>(
+               builder.Configuration.GetSection("JwtSettings"));
 
     builder.Services
     .AddMvc(options => options.SuppressAsyncSuffixInActionNames = false)
@@ -92,8 +123,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

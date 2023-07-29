@@ -1,8 +1,9 @@
 namespace PeyulErp.Models
 {
-    public record UserRole : BaseModel
+    public enum UserRole
     {
-        public string Name { get; init; }
-        public List<Priviledge> Priviledges { get; init; }
+       Admin = 1,
+       Teller,
+       Superviser
     }
 }
