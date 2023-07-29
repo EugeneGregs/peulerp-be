@@ -16,6 +16,7 @@ namespace PeyulErp.Controllers
     {
         private readonly IUsersService _usersService;
         private readonly JwtSettings _jwtSettings;
+        private const string AdminRole = "Admin";
 
         public UsersController(IUsersService usersService, IOptions<JwtSettings> jwtSettings)
         {
@@ -30,10 +31,14 @@ namespace PeyulErp.Controllers
             {
                 var users = (await _usersService.GetAllAsync())
                     .Select(u => new {
+                        Id = u.Id,
                         Name = u.Name,
                         Email = u.Email,
                         PhoneNumber = u.PhoneNumber,
-                        CreateDate = u.CreateDate
+                        CreateDate = u.CreateDate,
+                        Role = u.Role,
+                        Status = u.Status,
+                        UpdateDate = u.UpdateDate
                     });
 
                 return Ok(users);
@@ -71,7 +76,8 @@ namespace PeyulErp.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        //[AllowAnonymous]
+        [Authorize(Roles = AdminRole)]
         public async Task<ActionResult> CreateUser(User user)
         {
             try
@@ -92,7 +98,7 @@ namespace PeyulErp.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = AdminRole)]
         public async Task<ActionResult> UpdateUser(Guid id, User user)
         {
             try
@@ -121,7 +127,7 @@ namespace PeyulErp.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = AdminRole)]
         public async Task<ActionResult> DeleteUser(Guid id)
         {
             try

@@ -22,7 +22,7 @@ BsonSerializer.RegisterSerializer(new DateTimeSerializer(BsonType.String));
 
 //Cors
 builder.Services.AddCors(options => {
-    options.AddPolicy(name: MyAllowSpecificOrigins, policy  => { policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); });
+    options.AddPolicy(name: MyAllowSpecificOrigins, policy  => { policy.WithOrigins("http://localhost:8002").AllowAnyHeader().AllowAnyMethod().AllowCredentials(); });
 });
 
 // configure Services
