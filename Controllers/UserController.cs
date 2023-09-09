@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using PeyulErp.Exceptions;
 using PeyulErp.Model;
 using PeyulErp.Models;
 using PeyulErp.Services;
@@ -17,11 +18,19 @@ namespace PeyulErp.Controllers
         private readonly IUsersService _usersService;
         private readonly JwtSettings _jwtSettings;
         private const string AdminRole = "Admin";
+        private readonly IPasswordService _passwordService;
+        private readonly PasswordSettings _passwordSettings;
 
-        public UsersController(IUsersService usersService, IOptions<JwtSettings> jwtSettings)
+        public UsersController(
+            IUsersService usersService,
+            IPasswordService passwordService,
+            IOptions<JwtSettings> jwtSettings,
+            IOptions<PasswordSettings> passwordSettings)
         {
             _usersService = usersService;
             _jwtSettings = jwtSettings.Value;
+            _passwordService = passwordService;
+            _passwordSettings = passwordSettings.Value;
         }
 
         [HttpGet]
@@ -31,14 +40,14 @@ namespace PeyulErp.Controllers
             {
                 var users = (await _usersService.GetAllAsync())
                     .Select(u => new {
-                        Id = u.Id,
-                        Name = u.Name,
-                        Email = u.Email,
-                        PhoneNumber = u.PhoneNumber,
-                        CreateDate = u.CreateDate,
-                        Role = u.Role,
-                        Status = u.Status,
-                        UpdateDate = u.UpdateDate
+                        u.Id,
+                        u.Name,
+                        u.Email,
+                        u.PhoneNumber,
+                        u.CreateDate,
+                        u.Role,
+                        u.Status,
+                        u.UpdateDate
                     });
 
                 return Ok(users);
@@ -85,10 +94,10 @@ namespace PeyulErp.Controllers
                 var newUser = await _usersService.CreateAsync(user);
                 return CreatedAtAction(nameof(GetUser), new { id = user.Id }, new
                 {
-                    Name = newUser.Name,
-                    Email = newUser.Email,
-                    PhoneNumber = newUser.PhoneNumber,
-                    CreateDate = newUser.CreateDate
+                    newUser.Name,
+                    newUser.Email,
+                    newUser.PhoneNumber,
+                    newUser.CreateDate
                 });
             }
             catch (Exception ex)
@@ -114,10 +123,10 @@ namespace PeyulErp.Controllers
 
                 return Ok(new
                 {
-                    Name = updatedUser.Name,
-                    Email = updatedUser.Email,
-                    PhoneNumber = updatedUser.PhoneNumber,
-                    CreateDate = updatedUser.CreateDate
+                    updatedUser.Name,
+                    updatedUser.Email,
+                    updatedUser.PhoneNumber,
+                    updatedUser.CreateDate
                 });
             }
             catch (Exception ex)
@@ -149,6 +158,7 @@ namespace PeyulErp.Controllers
             }
         }
 
+#pragma warning disable CS4014
         [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult> Login(User loginUser)
@@ -156,18 +166,54 @@ namespace PeyulErp.Controllers
             try
             {
                 var user = await _usersService.GetByEmailAsync(loginUser.Email);
+                var message = "UserName Or Password Incorrect";
 
-                if (user == null || user.Password != Password.HashPassword(loginUser.Password))
+                if (user == null)
+                    return Unauthorized(message);
+
+                var userPassword = await _passwordService.GetByUserId(user.Id);
+                var isPasswordValid = await IsLoginValid(user, userPassword, loginUser.Password);
+
+                if (!isPasswordValid)
                 {
-                    return Unauthorized("UserName Or Password Incorrect");
+                    await _passwordService.IncrementFailedAttempts(user.Id);
+
+                    return Unauthorized(message);
                 }
 
-                return Ok(new LoginResponse(user.GetUserToken(_jwtSettings)));
+                if(userPassword.FailedAttempts > 0)
+                {
+                    _passwordService.ResetPasswordAttempts(user.Id).ConfigureAwait(false);
+                }
+
+                return Ok(new LoginResponse(user.GetUserToken(_jwtSettings),user.Email,user.Role.ToString(), userPassword.ForceReset));
             }
             catch(Exception ex)
             {
                 return BadRequest(ex.Message);
             }
+        }
+#pragma warning restore CS4014
+
+        private async Task<bool> IsLoginValid(User user, UserPassword userPassword, string password)
+        {
+            if(user.Status != UserStatus.Active)
+            {
+                throw new UserException("User is inactive");
+            }
+
+            if(userPassword == null)
+            {
+                await _passwordService.Upsert(user);
+                userPassword = await _passwordService.GetByUserId(user.Id);
+            }
+
+            if( userPassword.FailedAttempts > _passwordSettings.MaxAttempts)
+            {
+                throw new PasswordException("Maximum password attempts exceeded");
+            }
+
+            return user.Password == Password.HashPassword(password);            
         }
 
         [AllowAnonymous]

@@ -14,15 +14,16 @@ using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
-var  MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 BsonSerializer.RegisterSerializer(new DateTimeOffsetSerializer(BsonType.String));
 BsonSerializer.RegisterSerializer(new DateTimeSerializer(BsonType.String));
 
 //Cors
-builder.Services.AddCors(options => {
-    options.AddPolicy(name: MyAllowSpecificOrigins, policy  => { policy.WithOrigins("http://localhost:8002").AllowAnyHeader().AllowAnyMethod().AllowCredentials(); });
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins, policy => { policy.WithOrigins(builder.Configuration["SystemSettings:ClientOrigin"]).AllowAnyHeader().AllowAnyMethod().AllowCredentials(); });
 });
 
 // configure Services
@@ -66,6 +67,7 @@ builder.Services.AddCors(options => {
     builder.Services.AddSingleton<IDashboardService, DefaultDashboardService>();
     builder.Services.AddSingleton<IUsersService, MongoUsersService>();
     builder.Services.AddSingleton<IMailingService, MailKitMailingService>();
+    builder.Services.AddSingleton<IPasswordService, MongoPasswordService>();
 
     builder.Services.AddSingleton<IMongoClient>(serviceProvider =>
     {
@@ -83,6 +85,8 @@ builder.Services.AddCors(options => {
                builder.Configuration.GetSection("MailSettings"));
     builder.Services.Configure<JwtSettings>(
                builder.Configuration.GetSection("JwtSettings"));
+    builder.Services.Configure<PasswordSettings>(
+        builder.Configuration.GetSection("PasswordSettings"));
 
     builder.Services
     .AddMvc(options => options.SuppressAsyncSuffixInActionNames = false)

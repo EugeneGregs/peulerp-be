@@ -67,7 +67,7 @@ namespace PeyulErp.Controllers{
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Policy = IdentityHelper.AdminUserPolicyName)]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteProductAsync(Guid Id){
             var deleted = await _productService.DeleteProductAsync(Id);
 
