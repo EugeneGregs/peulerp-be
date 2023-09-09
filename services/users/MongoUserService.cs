@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using PeyulErp.Exceptions;
 using PeyulErp.Model;
 using PeyulErp.Models;
 using PeyulErp.Settings;
@@ -12,29 +13,63 @@ namespace PeyulErp.Services
     public class MongoUsersService : IUsersService
     {
         private readonly IMongoCollection<User> _usersCollection;
+        private readonly IPasswordService _passwordService;
         private readonly MongoDbSettings _settings;
+        private readonly SystemSettings _systemSettings;
         private readonly IMailingService _mailingService;
         private readonly FilterDefinitionBuilder<User> _filterBuilder = Builders<User>.Filter;
 
         public MongoUsersService(
             IMongoClient client,
             IOptions<MongoDbSettings> settings,
+            IOptions<SystemSettings> systemSettings,
+            IPasswordService passwordService,
             IMailingService mailingService)
         {
             _settings = settings.Value;
             var database = client.GetDatabase(_settings.DatabaseName);
             _usersCollection = database.GetCollection<User>(_settings.UsersCollectionName);
             _mailingService = mailingService;
+            _systemSettings = systemSettings.Value;
+            _passwordService = passwordService;
+
+            //create default admin user if not exists
+            CreateDefaultAdminUser().ConfigureAwait(false);
         }
 
-        public async Task<User> CreateAsync(User user)
+        //create default admin user if not exists
+        public async Task CreateDefaultAdminUser()
         {
-            var existingUser =  _usersCollection.Find(_filterBuilder.Eq(u => u.Email, user.Email)).FirstOrDefault();
+            var adminUser = await _usersCollection.Find(_filterBuilder.Eq(u => u.Role, UserRole.Admin)).FirstOrDefaultAsync();
+            Console.WriteLine("Admin Email: " + _systemSettings.AdminEmail);
 
-            if (existingUser != null)
-                throw new Exception("User already exists");
+            if (adminUser == null)
+            {
+                var defaultAdminUser = new User
+                {
+                    Name = "Admin",
+                    Email = _systemSettings.AdminEmail,
+                    PhoneNumber = "254722000000",
+                    Status = UserStatus.Active,
+                    Role = UserRole.Admin,
+                    Password = Password.HashPassword(_systemSettings.AdminPassword)
+                };
 
-            var randomPassword = Password.GenerateRandomPassword();
+                await CreateAsync(defaultAdminUser, true);
+            }
+        }
+
+        public async Task<User> CreateAsync(User user, bool isDefaultUser = false)
+        {
+            if (!isDefaultUser)
+            {
+                var existingUser = _usersCollection.Find(_filterBuilder.Eq(u => u.Email, user.Email)).FirstOrDefault();
+
+                if (existingUser != null)
+                    throw new Exception("User already exists");
+            }       
+
+            var randomPassword = isDefaultUser ? user.Password : Password.GenerateRandomPassword();
             var dbUser = user with
             {
                 Id = Guid.NewGuid(),
@@ -44,6 +79,7 @@ namespace PeyulErp.Services
                 Password = Password.HashPassword(randomPassword)
             };
 
+            await _passwordService.Upsert(dbUser, !isDefaultUser);
             await _usersCollection.InsertOneAsync(dbUser);
             SendWelcomeEmail(dbUser with { Password = randomPassword }).ConfigureAwait(false);
 
@@ -60,6 +96,7 @@ namespace PeyulErp.Services
             }
 
             await _usersCollection.DeleteOneAsync(_filterBuilder.Eq(u => u.Id, Id));
+            await _passwordService.DeletePassword(existingUser.Id);
 
             return true;
         }
@@ -105,7 +142,7 @@ namespace PeyulErp.Services
             await _usersCollection.UpdateOneAsync(_filterBuilder.Eq(u => u.Id, Id), Builders<User>.Update.Set(u => u.Status, status));
         }
 
-        public async Task UpdateUserPassWordAsync(Guid Id, string password)
+        public async Task UpdateUserPassWordAsync(Guid Id, string password, bool forceReset = false)
         {
             var existingUser = (await _usersCollection.FindAsync(_filterBuilder.Eq(u => u.Id, Id))).FirstOrDefault();
 
@@ -114,6 +151,7 @@ namespace PeyulErp.Services
                 throw new Exception("User not found");
             }
 
+            await _passwordService.Upsert(existingUser with { Password = Password.HashPassword(password) }, forceReset);
             await _usersCollection.UpdateOneAsync(_filterBuilder.Eq(u => u.Id, Id), Builders<User>.Update.Set(u => u.Password, Password.HashPassword(password)));
         }
 
@@ -134,7 +172,7 @@ namespace PeyulErp.Services
         public async Task<bool> ResetUserPasswordAsync(User user)
         {
             var newPassword = Password.GenerateRandomPassword();
-            await UpdateUserPassWordAsync(user.Id, newPassword);
+            await UpdateUserPassWordAsync(user.Id, newPassword, true);
             SendPasswordResetEmailAsync(user with { Password = newPassword });
 
             return true;

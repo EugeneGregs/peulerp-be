@@ -10,5 +10,6 @@ namespace PeyulErp.Settings{
         public string SupplierCollectionName { get; set; }
         public string ExpensesCollectionName { get; set; }
         public string UsersCollectionName { get; set; }
+        public string UserPasswordCollectionName { get; set; }
     }
 }
